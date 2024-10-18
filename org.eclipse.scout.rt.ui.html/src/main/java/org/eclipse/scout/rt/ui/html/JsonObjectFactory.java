@@ -116,6 +116,7 @@ import org.eclipse.scout.rt.client.ui.tile.ITile;
 import org.eclipse.scout.rt.client.ui.tile.ITileAccordion;
 import org.eclipse.scout.rt.client.ui.tile.ITileGrid;
 import org.eclipse.scout.rt.client.ui.tile.IWidgetTile;
+import org.eclipse.scout.rt.client.ui.toggleswitch.IToggleSwitch;
 import org.eclipse.scout.rt.client.uuidpool.IUuidPool;
 import org.eclipse.scout.rt.platform.Bean;
 import org.eclipse.scout.rt.platform.Order;
@@ -231,6 +232,7 @@ import org.eclipse.scout.rt.ui.html.json.tile.JsonTile;
 import org.eclipse.scout.rt.ui.html.json.tile.JsonTileAccordion;
 import org.eclipse.scout.rt.ui.html.json.tile.JsonTileGrid;
 import org.eclipse.scout.rt.ui.html.json.tile.JsonWidgetTile;
+import org.eclipse.scout.rt.ui.html.json.toggleswitch.JsonToggleSwitch;
 import org.eclipse.scout.rt.ui.html.json.tree.JsonTree;
 import org.eclipse.scout.rt.ui.html.uuidpool.JsonUuidPool;
 
@@ -517,6 +519,9 @@ public class JsonObjectFactory extends AbstractJsonObjectFactory {
     }
     if (model instanceof UiCallbacks) {
       return new JsonUiCallbacks<>((UiCallbacks) model, session, id, parent);
+    }
+    if (model instanceof IToggleSwitch) {
+      return new JsonToggleSwitch<>((IToggleSwitch) model, session, id, parent);
     }
     return null;
   }
