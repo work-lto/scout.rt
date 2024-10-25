@@ -32,6 +32,7 @@ export class CalendarComponent extends Widget implements CalendarComponentModel 
 
   constructor() {
     super();
+    this.toDate = null;
     this.selected = false;
     this.fullDay = false;
     this.fullDayIndex = -1;
@@ -52,7 +53,16 @@ export class CalendarComponent extends Widget implements CalendarComponentModel 
   protected override _init(model: InitModelOf<this>) {
     super._init(model);
 
-    this._setCoveredDaysRange(model.coveredDaysRange as JsonDateRange);
+    this._initCoveredDaysRange(model.coveredDaysRange as JsonDateRange);
+  }
+
+  protected _initCoveredDaysRange(coveredDaysRange: JsonDateRange | DateRange) {
+    if (coveredDaysRange && coveredDaysRange.from && !coveredDaysRange.to) {
+      coveredDaysRange.to = this._calculateDefaultToDate(coveredDaysRange.from);
+    } else if (!coveredDaysRange) {
+      coveredDaysRange = new DateRange(dates.ensure(this.fromDate), this.getUiToDate());
+    }
+    this._setProperty('coveredDaysRange', DateRange.ensure(coveredDaysRange));
   }
 
   /**
@@ -61,13 +71,6 @@ export class CalendarComponent extends Widget implements CalendarComponentModel 
    */
   getUiToDate(): Date {
     return dates.parseJsonDate(this.toDate) || this._calculateDefaultToDate();
-  }
-
-  protected _setCoveredDaysRange(coveredDaysRange: JsonDateRange | DateRange) {
-    if (!coveredDaysRange.to) {
-      coveredDaysRange.to = this._calculateDefaultToDate(coveredDaysRange.from);
-    }
-    this._setProperty('coveredDaysRange', DateRange.ensure(coveredDaysRange));
   }
 
   protected override _remove() {
@@ -395,7 +398,7 @@ export class CalendarComponent extends Widget implements CalendarComponentModel 
     let range = null,
       $container = $('<div>'),
       fromDate = dates.parseJsonDate(this.fromDate),
-      toDate = this.getUiToDate(),
+      toDate = dates.parseJsonDate(this.toDate), // Explicitly use actual toDate here
       descriptionAvailable = strings.hasText(this.item.description) || this.item.descriptionElements;
 
     let $header = $container.appendDiv('calendar-component-header');
@@ -418,6 +421,8 @@ export class CalendarComponent extends Widget implements CalendarComponentModel 
     // time-range
     if (this.fullDay) {
       // NOP
+    } else if (!toDate) {
+      range = this.session.text('ui.AtX', this._format(fromDate, 'HH:mm'));
     } else if (dates.isSameDay(fromDate, toDate)) {
       range = this.session.text('ui.FromXToY', this._format(fromDate, 'HH:mm'), this._format(toDate, 'HH:mm'));
     } else {

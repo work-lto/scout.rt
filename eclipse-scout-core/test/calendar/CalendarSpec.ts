@@ -559,6 +559,63 @@ describe('Calendar', () => {
         expect(friday.fullDayIndex).toBe(1);
       });
     });
+
+    describe('with empty toDate', () => {
+
+      let fromDate1 = '2016-07-20 13:00:00.000';
+      let toDate1 = '2016-07-20 14:00:00.000';
+      let fromDate2 = '2016-07-20 16:00:00.000';
+      let toDate2 = '2016-07-20 17:00:00.000';
+
+      it('should throw no error when creating', () => {
+        // Arrange
+        let comp = scout.create(CalendarComponent, {parent: cal, fromDate: fromDate1});
+
+        // Act
+        let toDate = comp.toDate;
+        let uiToDate = comp.getUiToDate();
+
+        // Assert
+        expect(toDate).toBeNull();
+        expect(uiToDate).toEqual(dates.ensure(toDate1));
+      });
+
+      it('should initialize coveredDaysRange correctly', () => {
+        // Arrange
+        let comp1 = scout.create(CalendarComponent, {parent: cal, fromDate: fromDate1});
+        let comp2 = scout.create(CalendarComponent, {parent: cal, fromDate: fromDate2, coveredDaysRange: {from: fromDate2, to: null}});
+
+        // Act
+        let range1 = comp1.coveredDaysRange;
+        let range2 = comp2.coveredDaysRange;
+
+        // Assert
+        expect(range1.from).toEqual(dates.ensure(fromDate1));
+        expect(range1.to).toEqual(dates.ensure(toDate1));
+        expect(range2.from).toEqual(dates.ensure(fromDate2));
+        expect(range2.to).toEqual(dates.ensure(toDate2));
+      });
+
+      it('should respect modified default duration', () => {
+        // Arrange
+        let defaultDurationMinutes = 30;
+        let expectedEndDate = '2016-07-20 13:30:00.000';
+        let comp = scout.create(CalendarComponent, {
+          parent: cal,
+          fromDate: fromDate1,
+          defaultComponentDuration: defaultDurationMinutes
+        });
+
+        // Act
+        let uiToDate = comp.getUiToDate();
+        let range = comp.coveredDaysRange;
+
+        // Assert
+        expect(uiToDate).toEqual(dates.ensure(expectedEndDate));
+        expect(range.from).toEqual(dates.ensure(fromDate1));
+        expect(range.to).toEqual(dates.ensure(expectedEndDate));
+      });
+    });
   });
 
   describe('navigation', () => {
