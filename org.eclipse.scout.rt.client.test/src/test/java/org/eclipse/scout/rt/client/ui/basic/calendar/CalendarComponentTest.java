@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -114,7 +114,7 @@ public class CalendarComponentTest {
     Range<Date> coveredDayRange = component.getCoveredDaysRange();
     assertNotNull(coveredDayRange);
     assertEquals(DateUtility.truncDate(DATE_1), coveredDayRange.getFrom());
-    assertEquals(DateUtility.truncDate(DATE_1), coveredDayRange.getTo());
+    assertNull(coveredDayRange.getTo());
   }
 
   @Test
