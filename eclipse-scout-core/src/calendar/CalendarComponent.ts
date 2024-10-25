@@ -38,7 +38,7 @@ export class CalendarComponent extends Widget implements CalendarComponentModel 
     this.fullDayIndex = -1;
     this.item = null;
     this._$parts = [];
-    this.defaultComponentDuration = 60;
+    this.defaultComponentDuration = 30;
   }
 
   /**

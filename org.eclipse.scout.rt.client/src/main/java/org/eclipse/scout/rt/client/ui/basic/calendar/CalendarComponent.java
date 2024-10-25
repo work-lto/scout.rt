@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -52,16 +52,17 @@ public class CalendarComponent implements Comparable<CalendarComponent> {
     d = null;
     if (m_item instanceof ICalendarAppointment) {
       ICalendarAppointment app = (ICalendarAppointment) m_item;
-      d = DateUtility.max(app.getStart(), app.getEnd());
+      if (app.getEnd() != null) {
+        d = DateUtility.max(app.getStart(), app.getEnd());
+      }
     }
     if (m_item instanceof ICalendarTask) {
       ICalendarTask task = (ICalendarTask) m_item;
-      d = DateUtility.max(task.getStart(), task.getDue(), task.getComplete());
+      if (task.getDue() != null || task.getComplete() != null) {
+        d = DateUtility.max(task.getStart(), task.getDue(), task.getComplete());
+      }
     }
-    //
-    if (d == null) {
-      d = new Date(0);
-    }
+    // No null-check because toDate can be empty
     m_toDate = d;
 
     // cache covered days
