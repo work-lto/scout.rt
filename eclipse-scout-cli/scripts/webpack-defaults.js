@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const scoutBuildConstants = require('./constants');
 const CopyPlugin = require('copy-webpack-plugin');
+const {CycloneDxWebpackPlugin} = require('@cyclonedx/webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const AfterEmitWebpackPlugin = require('./AfterEmitWebpackPlugin');
 const {SourceMapDevToolPlugin, WatchIgnorePlugin, ProgressPlugin} = require('webpack');
@@ -83,6 +84,16 @@ module.exports = (env, args) => {
       noEmit: false,
       ...args.tsOptions?.compilerOptions
     }
+  };
+
+  /** @type {import('@cyclonedx/webpack-plugin').CycloneDxWebpackPluginOptions} */
+  const cycloneDxWebpackPluginOptions = {
+    specVersion: '1.5',
+    collectEvidence: true,
+    // reproducibleResults: true,
+    rootComponentType: 'framework',
+    validateResults: false
+    // outputLocation: './bom'
   };
 
   const config = {
@@ -300,6 +311,11 @@ module.exports = (env, args) => {
         }
       })
     ];
+
+    // TODO: why is css-loader in the dependencies??
+    // following file seems to be included:
+    // bsicrm-25.1\node_modules\.pnpm\babel-loader@9.1.3_@babel+core@7.23.5_webpack@5.89.0\node_modules\babel-loader\lib\index.js??ruleSet[1].rules[2].use[0]!bsicrm-25.1\node_modules\.pnpm\css-loader@6.8.1_webpack@5.89.0\node_modules\css-loader\dist\runtime\noSourceMaps.js
+    config.plugins.push(new CycloneDxWebpackPlugin(cycloneDxWebpackPluginOptions));
   }
 
   return config;
