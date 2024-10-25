@@ -563,9 +563,9 @@ describe('Calendar', () => {
     describe('with empty toDate', () => {
 
       let fromDate1 = '2016-07-20 13:00:00.000';
-      let toDate1 = '2016-07-20 14:00:00.000';
+      let toDate1 = '2016-07-20 13:30:00.000';
       let fromDate2 = '2016-07-20 16:00:00.000';
-      let toDate2 = '2016-07-20 17:00:00.000';
+      let toDate2 = '2016-07-20 16:30:00.000';
 
       it('should throw no error when creating', () => {
         // Arrange
@@ -598,8 +598,8 @@ describe('Calendar', () => {
 
       it('should respect modified default duration', () => {
         // Arrange
-        let defaultDurationMinutes = 30;
-        let expectedEndDate = '2016-07-20 13:30:00.000';
+        let defaultDurationMinutes = 15;
+        let expectedEndDate = '2016-07-20 13:15:00.000';
         let comp = scout.create(CalendarComponent, {
           parent: cal,
           fromDate: fromDate1,
