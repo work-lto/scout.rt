@@ -85,11 +85,6 @@ export class TreeAdapter extends ModelAdapter {
   }
 
   protected _sendNodesChecked(nodes: TreeNode[]) {
-    if (!this.widget.checkable) {
-      // Do not send event when tree is not checkable
-      return;
-    }
-
     let data = {
       nodes: []
     };

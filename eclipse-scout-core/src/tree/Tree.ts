@@ -1270,10 +1270,10 @@ export class Tree extends Widget implements TreeModel, Filterable<TreeNode> {
 
   /**
    * Processes a {@link TreeCheckNodesResult} object. It renders all updated nodes and triggers
-   * an {@code nodesChecked} event to send updated nodes to java.
+   * a `nodesChecked` event.
    *
    * @param checkNodesResult object with tree node check update
-   * @param triggerEvent indicates, if events should be triggered or not
+   * @param triggerEvent indicates whether events should be triggered or not. Default is true.
    */
   protected _processTreeCheckNodesResult(checkNodesResult: TreeCheckNodesResult, triggerEvent = true) {
     // Render
@@ -1284,7 +1284,7 @@ export class Tree extends Widget implements TreeModel, Filterable<TreeNode> {
 
     // Trigger event
     let eventTriggerNodes = checkNodesResult.getNodesForEventTrigger();
-    if (triggerEvent && eventTriggerNodes.length) {
+    if (this.checkable && triggerEvent && eventTriggerNodes.length) {
       this.trigger('nodesChecked', {
         nodes: eventTriggerNodes
       });
