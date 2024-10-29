@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2010-2018 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2024 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * https://www.eclipse.org/legal/epl-v10.html
  *
  * Contributors:
  *     BSI Business Systems Integration AG - initial API and implementation
@@ -22,6 +22,8 @@ import org.eclipse.scout.rt.platform.util.Assertions;
 import org.eclipse.scout.rt.platform.util.CollectionUtility;
 import org.eclipse.scout.rt.platform.util.collection.AbstractTransactionalMap;
 import org.eclipse.scout.rt.platform.util.collection.ConcurrentExpiringMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Basic implementation of {@link ICache}.
@@ -36,6 +38,7 @@ import org.eclipse.scout.rt.platform.util.collection.ConcurrentExpiringMap;
  * @since 5.2
  */
 public class BasicCache<K, V> implements ICache<K, V> {
+  private static final Logger LOG = LoggerFactory.getLogger(BasicCache.class);
 
   protected final String m_cacheId;
   protected final ICacheValueResolver<K, V> m_resolver;
@@ -149,24 +152,22 @@ public class BasicCache<K, V> implements ICache<K, V> {
 
   @Override
   public void invalidate(ICacheEntryFilter<K, V> filter, boolean propagate) {
-    boolean markInsertsDirty = true;
+    LOG.debug("Invalidate cache '{}' [propagate={}, filter={}]", m_cacheId, propagate, filter);
 
     if (filter instanceof AllCacheEntryFilter) {
       m_cacheMap.clear();
     }
     else if (filter instanceof KeyCacheEntryFilter) {
-      markInsertsDirty = false; // if all remove operations find a previous value, we do not need to mark inserts of other transactions as dirty
       KeyCacheEntryFilter<K, V> keyCacheEntryFilter = (KeyCacheEntryFilter<K, V>) filter;
       for (K key : keyCacheEntryFilter.getKeys()) {
-        boolean valueNotRemoved = m_cacheMap.remove(key) == null;
-        markInsertsDirty = markInsertsDirty | valueNotRemoved;
+        m_cacheMap.remove(key);
       }
     }
     else if (filter != null) {
       m_cacheMap.entrySet().removeIf(entry -> filter.accept(entry.getKey(), entry.getValue()));
     }
 
-    if (markInsertsDirty && m_transactionalMap != null) {
+    if (m_transactionalMap != null) {
       m_transactionalMap.markInsertsDirty();
     }
   }
