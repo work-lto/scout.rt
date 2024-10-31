@@ -109,8 +109,8 @@ public class SunSecurityProvider implements ISecurityProvider, ILegacySecurityPr
   @Override
   public EncryptionKey createDecryptionKey(char[] password, byte[] salt, int keyLen, byte[] compatibilityHeader) {
     String v = compatibilityHeader != null ? new String(compatibilityHeader, StandardCharsets.US_ASCII) : ENCRYPTION_COMPATIBILITY_HEADER_2021_V1;
-    if (ENCRYPTION_COMPATIBILITY_HEADER_2021_V1.equals(v)) {
-      // legacy
+    if (ENCRYPTION_COMPATIBILITY_HEADER_2021_V1.equals(v) || ENCRYPTION_COMPATIBILITY_HEADER_2023_V1.equals(v)) {
+      // legacy (also used if no header is set, see above)
       return createEncryptionKeyInternal(
           password,
           salt,
@@ -122,17 +122,17 @@ public class SunSecurityProvider implements ISecurityProvider, ILegacySecurityPr
           128,
           3557);
     }
-    if (ENCRYPTION_COMPATIBILITY_HEADER_2023_V1.equals(v)) {
+    if (ENCRYPTION_COMPATIBILITY_HEADER_2024_V1.equals(v)) {
       return createEncryptionKeyInternal(
           password,
           salt,
           keyLen,
-          "PBKDF2WithHmacSHA256",
+          "PBKDF2WithHmacSHA512",
           "AES",
           "SunJCE",
           16,
           128,
-          3557);
+          210000);
     }
     if (ENCRYPTION_COMPATIBILITY_HEADER.equals(v)) {
       // latest
@@ -168,15 +168,7 @@ public class SunSecurityProvider implements ISecurityProvider, ILegacySecurityPr
 
       SecretKey secretKey = new SecretKeySpec(key, cipherAlgorithm);
       GCMParameterSpec parameters = new GCMParameterSpec(gcmAuthTagBitLen, iv);
-      byte[] compatibilityHeader = ("[1:"
-          + keyLen
-          + "-" + secretKeyAlgorithm
-          + "-" + cipherAlgorithm
-          + "-" + cipherAlgorithmProvider
-          + "-" + gcmInitVecLen
-          + "-" + gcmAuthTagBitLen
-          + "-" + keyDerivationIterationCount
-          + "]").getBytes(StandardCharsets.US_ASCII);
+      byte[] compatibilityHeader = generateCompatibilityHeader(keyLen, secretKeyAlgorithm, cipherAlgorithm, cipherAlgorithmProvider, gcmInitVecLen, gcmAuthTagBitLen, keyDerivationIterationCount);
       return new EncryptionKey(secretKey, parameters, compatibilityHeader);
     }
     catch (NoSuchAlgorithmException e) {
@@ -185,6 +177,27 @@ public class SunSecurityProvider implements ISecurityProvider, ILegacySecurityPr
     catch (InvalidKeySpecException | NoSuchProviderException e) {
       throw new ProcessingException("Unable to create secret.", e);
     }
+  }
+
+  protected static byte[] generateCompatibilityHeader(int keyLen, String secretKeyAlgorithm, String cipherAlgorithm, String cipherAlgorithmProvider, int gcmInitVecLen, int gcmAuthTagBitLen, int keyDerivationIterationCount) {
+    String headerStr = "[1:"
+        + keyLen
+        + "-" + secretKeyAlgorithm
+        + "-" + cipherAlgorithm
+        + "-" + cipherAlgorithmProvider
+        + "-" + gcmInitVecLen
+        + "-" + gcmAuthTagBitLen
+        + "-" + keyDerivationIterationCount
+        + "]";
+    switch (headerStr) {
+      case "[1:128-PBKDF2WithHmacSHA256-AES-SunJCE-16-128-3557]":
+        headerStr = ENCRYPTION_COMPATIBILITY_HEADER_2023_V1;
+        break;
+      case "[1:128-PBKDF2WithHmacSHA512-AES-SunJCE-16-128-210000]":
+        headerStr = ENCRYPTION_COMPATIBILITY_HEADER_2024_V1;
+        break;
+    }
+    return headerStr.getBytes(StandardCharsets.US_ASCII);
   }
 
   @Override
@@ -497,7 +510,7 @@ public class SunSecurityProvider implements ISecurityProvider, ILegacySecurityPr
    *         exposed to a rainbow attack.
    */
   protected int getKeyDerivationIterationCount() {
-    return 3557;
+    return 210000;
   }
 
   /**
@@ -563,7 +576,7 @@ public class SunSecurityProvider implements ISecurityProvider, ILegacySecurityPr
   protected String getSecretKeyAlgorithm() {
     // Password-based key-derivation algorithm (<a href="http://tools.ietf.org/search/rfc2898">PKCS #5 2.0</a>)
     // using The HmacSHA algorithm (<a href="http://www.ietf.org/rfc/rfc2104.txt">RFC 2104</a>) as pseudo-random function.
-    return "PBKDF2WithHmacSHA256";
+    return "PBKDF2WithHmacSHA512";
   }
 
   /**
