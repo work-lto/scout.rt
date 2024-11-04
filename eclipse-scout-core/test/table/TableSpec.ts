@@ -38,6 +38,11 @@ describe('Table', () => {
     $.fx.off = true; // generation of sum rows is animated. leads to misleading test failures.
     jasmine.Ajax.install();
     jasmine.clock().install();
+    $('<style>' +
+      '.table.with-padding > .table-data {' +
+      '  padding: 20px;' +
+      '}' +
+      '</style>').appendTo($('#sandbox'));
   });
 
   afterEach(() => {
@@ -3884,6 +3889,61 @@ describe('Table', () => {
         expect($(aggregateRow).attr('aria-description')).toBeTruthy();
         expect($(aggregateRow).attr('aria-describedby')).toBeFalsy();
       });
+    });
+  });
+
+  describe('_columnAtX', () => {
+
+    let table: SpecTable, column0: Column, column1: Column, $row: JQuery, offset: number;
+
+    beforeEach(() => {
+      const model = helper.createModelFixture(2, 1);
+      table = helper.createTable(model);
+      table.render();
+
+      [column0, column1] = table.columns;
+      $row = table.rows[0].$row;
+
+      offset = table.$data.offset().left;
+    });
+
+    it('returns the correct column', () => {
+      expect(table.$cell(column0, $row).cssWidth()).toBe(60);
+      expect(table.$cell(column1, $row).cssWidth()).toBe(60);
+
+      // left of first column -> returns first column
+      expect(table._columnAtX(0)).toBe(column0);
+      // first column
+      expect(table._columnAtX(offset)).toBe(column0);
+      expect(table._columnAtX(30 + offset)).toBe(column0);
+      expect(table._columnAtX(59 + offset)).toBe(column0);
+      // second column
+      expect(table._columnAtX(60 + offset)).toBe(column1);
+      expect(table._columnAtX(90 + offset)).toBe(column1);
+      expect(table._columnAtX(119 + offset)).toBe(column1);
+      // right of last column -> returns last column
+      expect(table._columnAtX(130 + offset)).toBe(column1);
+    });
+
+    it('returns the correct column when .table-data has padding', () => {
+      table.addCssClass('with-padding');
+      offset += 20;
+
+      expect(table.$cell(column0, $row).cssWidth()).toBe(60);
+      expect(table.$cell(column1, $row).cssWidth()).toBe(60);
+
+      // left of first column -> returns first column
+      expect(table._columnAtX(0)).toBe(column0);
+      // first column
+      expect(table._columnAtX(offset)).toBe(column0);
+      expect(table._columnAtX(30 + offset)).toBe(column0);
+      expect(table._columnAtX(59 + offset)).toBe(column0);
+      // second column
+      expect(table._columnAtX(60 + offset)).toBe(column1);
+      expect(table._columnAtX(90 + offset)).toBe(column1);
+      expect(table._columnAtX(119 + offset)).toBe(column1);
+      // right of last column -> returns last column
+      expect(table._columnAtX(130 + offset)).toBe(column1);
     });
   });
 });
