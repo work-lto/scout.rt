@@ -2215,7 +2215,7 @@ export class Table extends Widget implements TableModel, Filterable<TableRow> {
    */
   protected _columnAtX(x: number): Column<any> {
     let columnOffsetRight = 0,
-      columnOffsetLeft = this.$data.offset().left + this.rowBorders.left + this.rowMargins.left,
+      columnOffsetLeft = this.$data.offset().left + graphics.insets(this.$data).left + this.rowBorders.left + this.rowMargins.left,
       scrollLeft = this.$data.scrollLeft();
 
     if (x < columnOffsetLeft) {
