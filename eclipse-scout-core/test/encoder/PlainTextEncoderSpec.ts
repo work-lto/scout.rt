@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -139,6 +139,14 @@ describe('PlainTextEncoder', () => {
 
   it('removes font icons if configured', () => {
     let htmlText = '<span class="table-cell-icon font-icon"></span><span class="text">Text</span>';
+    expect(encoder.encode(htmlText)).toBe('Text');
+    expect(encoder.encode(htmlText, {removeFontIcons: true})).toBe('Text');
+
+    htmlText = '<span aria-label="Text" class="table-cell-icon font-icon"></span><span class="text">Text</span>';
+    expect(encoder.encode(htmlText)).toBe('Text');
+    expect(encoder.encode(htmlText, {removeFontIcons: true})).toBe('Text');
+
+    htmlText = '<span class="table-cell-icon font-icon" aria-label="Text"></span><span class="text">Text</span>';
     expect(encoder.encode(htmlText)).toBe('Text');
     expect(encoder.encode(htmlText, {removeFontIcons: true})).toBe('Text');
 
