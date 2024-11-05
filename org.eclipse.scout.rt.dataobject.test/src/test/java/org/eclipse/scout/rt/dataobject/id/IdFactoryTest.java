@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -225,7 +225,7 @@ public class IdFactoryTest {
     }
 
     @RawTypes
-    public FixtureStringId_NonStaticRawTypesOf ofCustom(String id) {
+    public FixtureStringId_NonStaticRawTypesOf of(String id) {
       if (StringUtility.isNullOrEmpty(id)) {
         return null;
       }
