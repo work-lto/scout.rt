@@ -18,7 +18,7 @@ import org.eclipse.scout.rt.platform.annotations.ConfigProperty;
 import org.eclipse.scout.rt.platform.classid.ClassId;
 
 @ClassId("8f5e0016-cd17-47ce-bdac-034888f6915f")
-public class AbstractToggleSwitch extends AbstractWidget implements IToggleSwitch {
+public abstract class AbstractToggleSwitch extends AbstractWidget implements IToggleSwitch {
 
   private IToggleSwitchUIFacade m_uiFacade;
 
@@ -88,6 +88,7 @@ public class AbstractToggleSwitch extends AbstractWidget implements IToggleSwitc
    */
   @ConfigProperty(ConfigProperty.BOOLEAN)
   @Order(22)
+  @SuppressWarnings("findbugs:NP_BOOLEAN_RETURN_NULL")
   protected Boolean getConfiguredLabelVisible() {
     return null;
   }
