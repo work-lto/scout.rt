@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -10,6 +10,7 @@
 package org.eclipse.scout.rt.client.ui.form.fields.button;
 
 import org.eclipse.scout.rt.client.ui.action.keystroke.IKeyStroke;
+import org.eclipse.scout.rt.client.ui.action.keystroke.KeyStroke;
 import org.eclipse.scout.rt.platform.classid.ClassId;
 import org.eclipse.scout.rt.platform.text.TEXTS;
 
@@ -39,7 +40,7 @@ public abstract class AbstractResetButton extends AbstractButton {
 
   @Override
   protected String getConfiguredKeyStroke() {
-    return IKeyStroke.CONTROL + "-" + IKeyStroke.F6;
+    return KeyStroke.combineKeyStrokes(IKeyStroke.CONTROL, IKeyStroke.SHIFT, "z");
   }
 
   @Override

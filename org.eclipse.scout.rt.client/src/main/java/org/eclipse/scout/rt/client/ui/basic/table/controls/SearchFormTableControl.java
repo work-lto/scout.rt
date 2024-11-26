@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -10,6 +10,7 @@
 package org.eclipse.scout.rt.client.ui.basic.table.controls;
 
 import org.eclipse.scout.rt.client.ui.action.keystroke.IKeyStroke;
+import org.eclipse.scout.rt.client.ui.action.keystroke.KeyStroke;
 import org.eclipse.scout.rt.client.ui.form.IForm;
 import org.eclipse.scout.rt.platform.Order;
 import org.eclipse.scout.rt.platform.classid.ClassId;
@@ -43,6 +44,6 @@ public class SearchFormTableControl extends AbstractFormTableControl {
 
   @Override
   protected String getConfiguredKeyStroke() {
-    return IKeyStroke.F6;
+    return KeyStroke.combineKeyStrokes(IKeyStroke.CONTROL, IKeyStroke.SHIFT, "f");
   }
 }
