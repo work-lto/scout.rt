@@ -107,12 +107,14 @@
     }
   }
 
+  // noinspection CssUnknownProperty
   .transform(@args) {
     -webkit-transform: @args;
     -ms-transform: @args;
     transform: @args;
   }
 
+  // noinspection CssUnknownProperty
   .transform-origin(@args) {
     -webkit-transform-origin: @args;
     -moz-transform-origin: @args;
@@ -280,7 +282,7 @@
     cursor: pointer;
 
     &::before {
-      content: @icon-error;
+      content: @icon-exclamation-mark-circle;
       color: @status-warning-color;
       font-size: @status-font-icon-size;
     }
@@ -302,7 +304,7 @@
     cursor: pointer;
 
     &::before {
-      content: @icon-error;
+      content: @icon-exclamation-mark-circle;
       color: @status-error-color;
       font-size: @status-font-icon-size;
     }
