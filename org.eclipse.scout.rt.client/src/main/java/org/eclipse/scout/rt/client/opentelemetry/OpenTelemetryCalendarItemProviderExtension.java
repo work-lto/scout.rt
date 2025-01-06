@@ -19,45 +19,50 @@ import org.eclipse.scout.rt.client.extension.ui.basic.calendar.provider.Calendar
 import org.eclipse.scout.rt.client.extension.ui.basic.calendar.provider.CalendarItemProviderChains.CalendarItemProviderLoadItemsInBackgroundChain;
 import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumenterFactory.OpenTelemetryExtensionRequest;
 import org.eclipse.scout.rt.client.ui.basic.calendar.provider.AbstractCalendarItemProvider;
+import org.eclipse.scout.rt.platform.BEANS;
 import org.eclipse.scout.rt.shared.services.common.calendar.ICalendarItem;
 
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryCalendarItemProviderExtension extends AbstractCalendarItemProviderExtension<AbstractCalendarItemProvider> implements IOpenTelemetryExtension<AbstractCalendarItemProvider> {
+public class OpenTelemetryCalendarItemProviderExtension extends AbstractCalendarItemProviderExtension<AbstractCalendarItemProvider> {
 
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractCalendarItemProvider>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.calendarItemProvider";
+  private static final AttributeKey<String> MIN_DATE = AttributeKey.stringKey("scout.extension.min.date");
+  private static final AttributeKey<String> MAX_DATE = AttributeKey.stringKey("scout.extension.max.date");
+  private static final AttributeKey<String> ITEM_TEXT = AttributeKey.stringKey("scout.extension.item.text");
 
   public OpenTelemetryCalendarItemProviderExtension(AbstractCalendarItemProvider owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractCalendarItemProvider> r) -> "");
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> "");
   }
 
   @Override
   public void execLoadItems(CalendarItemProviderLoadItemsChain chain, Date minDate, Date maxDate, Set<ICalendarItem> result) {
-    wrapCall(() -> super.execLoadItems(chain, minDate, maxDate, result),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execLoadItems")
-            .withEventInfo("minDate", minDate.toString())
-            .withEventInfo("maxDate", maxDate.toString()));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execLoadItems")
+        .withAdditionalAttributesProvider(attributes -> {
+          attributes.put(MIN_DATE, minDate.toString());
+          attributes.put(MAX_DATE, maxDate.toString());
+        })
+        .wrapCall(() -> super.execLoadItems(chain, minDate, maxDate, result), m_instrumenter);
   }
 
   @Override
   public void execLoadItemsInBackground(CalendarItemProviderLoadItemsInBackgroundChain chain, IClientSession session, Date minDate, Date maxDate, Set<ICalendarItem> result) {
-    wrapCall(() -> super.execLoadItemsInBackground(chain, session, minDate, maxDate, result),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execLoadItemsInBackground")
-            .withEventInfo("minDate", minDate.toString())
-            .withEventInfo("maxDate", maxDate.toString()));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execLoadItemsInBackground")
+        .withAdditionalAttributesProvider(attributes -> {
+          attributes.put(MIN_DATE, minDate.toString());
+          attributes.put(MAX_DATE, maxDate.toString());
+        })
+        .wrapCall(() -> super.execLoadItemsInBackground(chain, session, minDate, maxDate, result), m_instrumenter);
   }
 
   @Override
   public void execItemAction(CalendarItemProviderItemActionChain chain, ICalendarItem item) {
-    wrapCall(() -> super.execItemAction(chain, item),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execItemAction")
-            .withEventInfo("item.text", item.getSubject()));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractCalendarItemProvider>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execItemAction")
+        .withAdditionalAttributesProvider(attributes -> attributes.put(ITEM_TEXT, item.getItemId().toString()))
+        .wrapCall(() -> super.execItemAction(chain, item), m_instrumenter);
   }
 }

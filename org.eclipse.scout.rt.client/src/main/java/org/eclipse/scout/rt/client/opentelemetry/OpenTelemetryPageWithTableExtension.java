@@ -14,28 +14,24 @@ import org.eclipse.scout.rt.client.extension.ui.desktop.outline.pages.PageWithTa
 import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumenterFactory.OpenTelemetryExtensionRequest;
 import org.eclipse.scout.rt.client.ui.basic.table.ITable;
 import org.eclipse.scout.rt.client.ui.desktop.outline.pages.AbstractPageWithTable;
+import org.eclipse.scout.rt.platform.BEANS;
 
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryPageWithTableExtension<T extends ITable> extends AbstractPageWithTableExtension<T, AbstractPageWithTable<T>> implements IOpenTelemetryExtension<AbstractPageWithTable<T>> {
+public class OpenTelemetryPageWithTableExtension<T extends ITable> extends AbstractPageWithTableExtension<T, AbstractPageWithTable<T>> {
 
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractPageWithTable<T>>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.pageWithTable";
 
   public OpenTelemetryPageWithTableExtension(AbstractPageWithTable<T> owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractPageWithTable<T>> r) -> r.getOwner().getTable().getTitle());
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> request.getOwner().getTable().getTitle());
   }
 
   @Override
   public void execPopulateTable(PageWithTablePopulateTableChain<? extends ITable> chain) {
-    wrapCall(() -> super.execPopulateTable(chain),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execPopulateTable")
-            .withEventInfo("id", getOwner().getNodeId()));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractPageWithTable<T>>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execPopulateTable")
+        .wrapCall(() -> super.execPopulateTable(chain), m_instrumenter);
   }
 }

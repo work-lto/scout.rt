@@ -11,6 +11,7 @@ package org.eclipse.scout.rt.server.commons.opentelemetry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -39,10 +40,10 @@ public class SpanNamePropagationFromDownstream implements ContextCustomizer<Http
     }
   }
 
-  public static void addNameToContext(String name) {
+  public static void addNameToContext(Supplier<String> nameSupplier) {
     List<String> o = Context.current().get(NAME_CONTEXT_KEY);
     if (o != null) {
-      o.add(name);
+      o.add(nameSupplier.get());
     }
   }
 }

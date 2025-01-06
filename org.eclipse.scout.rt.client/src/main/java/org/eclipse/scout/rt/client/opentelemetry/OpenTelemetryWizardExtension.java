@@ -19,56 +19,60 @@ import org.eclipse.scout.rt.client.extension.ui.wizard.WizardChains.WizardStartC
 import org.eclipse.scout.rt.client.extension.ui.wizard.WizardChains.WizardSuspendChain;
 import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumenterFactory.OpenTelemetryExtensionRequest;
 import org.eclipse.scout.rt.client.ui.wizard.AbstractWizard;
+import org.eclipse.scout.rt.platform.BEANS;
 
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryWizardExtension extends AbstractWizardExtension<AbstractWizard> implements IOpenTelemetryExtension<AbstractWizard> {
+public class OpenTelemetryWizardExtension extends AbstractWizardExtension<AbstractWizard> {
 
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractWizard>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.wizard";
 
   public OpenTelemetryWizardExtension(AbstractWizard owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractWizard> r) -> r.getOwner().getTitle());
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> request.getOwner().getTitle());
   }
 
   @Override
   public void execStart(WizardStartChain chain) {
-    wrapCall(() -> super.execStart(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execStart"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execStart")
+        .wrapCall(() -> super.execStart(chain), m_instrumenter);
   }
 
   @Override
   public void execPostStart(WizardPostStartChain chain) {
-    wrapCall(() -> super.execPostStart(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execPostStart"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execPostStart")
+        .wrapCall(() -> super.execPostStart(chain), m_instrumenter);
   }
 
   @Override
   public void execPreviousStep(WizardPreviousStepChain chain) {
-    wrapCall(() -> super.execPreviousStep(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execPreviousStep"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execPreviousStep")
+        .wrapCall(() -> super.execPreviousStep(chain), m_instrumenter);
   }
 
   @Override
   public void execNextStep(WizardNextStepChain chain) {
-    wrapCall(() -> super.execNextStep(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execNextStep"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execNextStep")
+        .wrapCall(() -> super.execNextStep(chain), m_instrumenter);
   }
 
   @Override
   public void execSuspend(WizardSuspendChain chain) {
-    wrapCall(() -> super.execSuspend(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execSuspend"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execSuspend")
+        .wrapCall(() -> super.execSuspend(chain), m_instrumenter);
   }
 
   @Override
   public void execCancel(WizardCancelChain chain) {
-    wrapCall(() -> super.execCancel(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execCancel"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execCancel")
+        .wrapCall(() -> super.execCancel(chain), m_instrumenter);
   }
 
   @Override
   public void execFinish(WizardFinishChain chain) {
-    wrapCall(() -> super.execFinish(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execFinish"));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractWizard>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execFinish")
+        .wrapCall(() -> super.execFinish(chain), m_instrumenter);
   }
 }

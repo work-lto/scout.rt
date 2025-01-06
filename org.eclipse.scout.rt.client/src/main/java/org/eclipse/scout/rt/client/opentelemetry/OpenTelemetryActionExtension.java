@@ -13,27 +13,26 @@ import org.eclipse.scout.rt.client.extension.ui.action.AbstractActionExtension;
 import org.eclipse.scout.rt.client.extension.ui.action.ActionChains.ActionActionChain;
 import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumenterFactory.OpenTelemetryExtensionRequest;
 import org.eclipse.scout.rt.client.ui.action.AbstractAction;
+import org.eclipse.scout.rt.platform.BEANS;
 
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryActionExtension extends AbstractActionExtension<AbstractAction> implements IOpenTelemetryExtension<AbstractAction> {
+public class OpenTelemetryActionExtension extends AbstractActionExtension<AbstractAction> {
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractAction>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.action";
+  private static final AttributeKey<String> OWNER_ACTION_ID = AttributeKey.stringKey("scout.extension.owner.action.id");
 
   public OpenTelemetryActionExtension(AbstractAction owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractAction> r) -> r.getOwner().getText());
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> request.getOwner().getText());
   }
 
   @Override
   public void execAction(ActionActionChain chain) {
-    wrapCall(() -> super.execAction(chain),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execAction")
-            .withEventInfo("id", getOwner().getActionId()));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractAction>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execAction")
+        .withAdditionalAttributesProvider(attributes -> attributes.put(OWNER_ACTION_ID, getOwner().getActionId()))
+        .wrapCall(() -> super.execAction(chain), m_instrumenter);
   }
 }

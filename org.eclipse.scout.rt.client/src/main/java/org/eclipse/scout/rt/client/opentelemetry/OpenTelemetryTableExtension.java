@@ -18,36 +18,39 @@ import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumen
 import org.eclipse.scout.rt.client.ui.MouseButton;
 import org.eclipse.scout.rt.client.ui.basic.table.AbstractTable;
 import org.eclipse.scout.rt.client.ui.basic.table.ITableRow;
+import org.eclipse.scout.rt.platform.BEANS;
 
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryTableExtension extends AbstractTableExtension<AbstractTable> implements IOpenTelemetryExtension<AbstractTable> {
+public class OpenTelemetryTableExtension extends AbstractTableExtension<AbstractTable> {
 
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractTable>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.table";
+  private static final AttributeKey<String> ROWS_COUNT = AttributeKey.stringKey("scout.extension.rows.count");
+  private static final AttributeKey<String> ROWS_INDEX = AttributeKey.stringKey("scout.extension.rows.index");
+  private static final AttributeKey<String> MOUSE_BUTTON_NAME = AttributeKey.stringKey("scout.extension.mouse.button.name");
 
   public OpenTelemetryTableExtension(AbstractTable owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractTable> r) -> r.getOwner().getTitle());
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> request.getOwner().getTitle());
   }
 
   @Override
   public void execRowsSelected(TableRowsSelectedChain chain, List<? extends ITableRow> rows) {
-    wrapCall(() -> super.execRowsSelected(chain, rows),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execRowsSelected")
-            .withEventInfo("rows.count", String.valueOf(rows.size())));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execRowsSelected")
+        .withAdditionalAttributesProvider(attributes -> attributes.put(ROWS_COUNT, String.valueOf(rows.size())))
+        .wrapCall(() -> super.execRowsSelected(chain, rows), m_instrumenter);
   }
 
   @Override
   public void execRowClick(TableRowClickChain chain, ITableRow row, MouseButton mouseButton) {
-    wrapCall(() -> super.execRowClick(chain, row, mouseButton),
-        new OpenTelemetryExtensionRequest<>(getOwner(), "execRowClick")
-            .withEventInfo("mouseButton", mouseButton.name())
-            .withEventInfo("row.index", String.valueOf(row.getRowIndex())));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractTable>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execRowClick")
+        .withAdditionalAttributesProvider(attributes -> {
+          attributes.put(MOUSE_BUTTON_NAME, mouseButton.name());
+          attributes.put(ROWS_INDEX, String.valueOf(row.getRowIndex()));
+        })
+        .wrapCall(() -> super.execRowClick(chain, row, mouseButton), m_instrumenter);
   }
 }

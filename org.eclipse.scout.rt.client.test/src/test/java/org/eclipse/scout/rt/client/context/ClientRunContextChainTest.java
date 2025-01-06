@@ -65,6 +65,7 @@ public class ClientRunContextChainTest {
     // 3. OpenTelemetryContextProcessor
     c = chainIterator.next();
     assertEquals(OpenTelemetryContextProcessor.class, c.getClass());
+    assertNull(RunContext.CURRENT.get().getOpenTelemetryContext());
 
     // 4. ThreadLocalProcessor for CorrelationId.CURRENT
     c = chainIterator.next();
@@ -100,7 +101,7 @@ public class ClientRunContextChainTest {
     assertEquals(ThreadLocalProcessor.class, c.getClass());
     assertSame(PropertyMap.CURRENT, ((ThreadLocalProcessor) c).getThreadLocal());
 
-    // 11. ThreadLocalProcessor for ISession.CURREN
+    // 11. ThreadLocalProcessor for ISession.CURRENT
     c = chainIterator.next();
     assertEquals(ThreadLocalProcessor.class, c.getClass());
     assertSame(ISession.CURRENT, ((ThreadLocalProcessor) c).getThreadLocal());

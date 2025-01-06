@@ -180,11 +180,11 @@ public class ServiceTunnelServlet extends AbstractHttpServlet {
   }
 
   protected ServiceTunnelResponse doPost(ServiceTunnelRequest serviceRequest) {
-    addNameToContext(getName(serviceRequest));
+    addNameToContext(() -> buildSpanName(serviceRequest));
     return doPostInternal(serviceRequest);
   }
 
-  protected String getName(ServiceTunnelRequest serviceRequest) {
+  protected String buildSpanName(ServiceTunnelRequest serviceRequest) {
     String fullName = serviceRequest.getServiceInterfaceClassName();
     String serviceName = fullName.substring(fullName.lastIndexOf('.') + 1);
     return serviceName + "." + serviceRequest.getOperation();

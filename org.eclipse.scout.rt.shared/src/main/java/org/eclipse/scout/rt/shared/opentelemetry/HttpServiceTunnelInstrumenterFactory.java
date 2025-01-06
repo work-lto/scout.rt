@@ -9,7 +9,7 @@
  */
 package org.eclipse.scout.rt.shared.opentelemetry;
 
-import static io.opentelemetry.instrumentation.api.internal.AttributesExtractorUtil.internalSet;
+import java.util.Arrays;
 
 import javax.annotation.Nullable;
 
@@ -34,6 +34,7 @@ public class HttpServiceTunnelInstrumenterFactory {
 
   private static final AttributeKey<String> REQUEST_NAME = AttributeKey.stringKey(SCOUT_PREFIX + ".name");
   private static final AttributeKey<String> OPERATION = AttributeKey.stringKey(SCOUT_PREFIX + ".operation");
+  private static final AttributeKey<String> PARAMETER_TYPES = AttributeKey.stringKey(SCOUT_PREFIX + ".parameter.types");
 
   public Instrumenter<ServiceTunnelRequest, Void> createInstrumenter() {
     SpanNameExtractor<ServiceTunnelRequest> spanNameExtractor = serviceTunnelRequest -> {
@@ -45,8 +46,9 @@ public class HttpServiceTunnelInstrumenterFactory {
 
       @Override
       public void onStart(AttributesBuilder attributes, Context parentContext, ServiceTunnelRequest serviceTunnelRequest) {
-        internalSet(attributes, REQUEST_NAME, serviceTunnelRequest.getServiceInterfaceClassName());
-        internalSet(attributes, OPERATION, serviceTunnelRequest.getOperation());
+        attributes.put(REQUEST_NAME, serviceTunnelRequest.getServiceInterfaceClassName());
+        attributes.put(OPERATION, serviceTunnelRequest.getOperation());
+        attributes.put(PARAMETER_TYPES, Arrays.toString(serviceTunnelRequest.getParameterTypes()));
       }
 
       @Override

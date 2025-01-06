@@ -9,10 +9,9 @@
  */
 package org.eclipse.scout.rt.server.commons.opentelemetry;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.function.Function;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,13 +25,11 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;
-import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusExtractor;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesExtractor;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpServerAttributesGetter;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpServerMetrics;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpServerRoute;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpSpanNameExtractor;
-import io.opentelemetry.instrumentation.api.semconv.http.HttpSpanNameExtractorBuilder;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpSpanStatusExtractor;
 
 @ApplicationScoped
@@ -43,21 +40,16 @@ public class OpenTelemetryFilterInstrumenterFactory {
   public Instrumenter<HttpServletRequest, HttpServletResponse> createInstrumenter() {
     OpenTelemetryServerHttpAttributesGetter attributesGetter = OpenTelemetryServerHttpAttributesGetter.INSTANCE;
 
-    Function<SpanNameExtractor<? super HttpServletRequest>, ? extends SpanNameExtractor<? super HttpServletRequest>> spanNameExtractorTransformer = Function.identity();
-    Function<SpanStatusExtractor<? super HttpServletRequest, ? super HttpServletResponse>, ? extends SpanStatusExtractor<? super HttpServletRequest, ? super HttpServletResponse>> statusExtractorTransformer = Function.identity();
-    HttpSpanNameExtractorBuilder<HttpServletRequest> httpSpanNameExtractorBuilder = HttpSpanNameExtractor.builder(attributesGetter);
-    SpanNameExtractor<? super HttpServletRequest> spanNameExtractor =
-        spanNameExtractorTransformer.apply(httpSpanNameExtractorBuilder.build());
+    SpanNameExtractor<? super HttpServletRequest> spanNameExtractor = HttpSpanNameExtractor.create(attributesGetter);
 
     return Instrumenter.<HttpServletRequest, HttpServletResponse> builder(
         GlobalOpenTelemetry.get(), INSTRUMENTATION_NAME, spanNameExtractor)
-        .setSpanStatusExtractor(
-            statusExtractorTransformer.apply(HttpSpanStatusExtractor.create(attributesGetter)))
+        .setSpanStatusExtractor(HttpSpanStatusExtractor.create(attributesGetter))
         .addAttributesExtractor(HttpServerAttributesExtractor.builder(attributesGetter).build())
         .addContextCustomizer(new SpanNamePropagationFromDownstream())
         .addContextCustomizer(HttpServerRoute.builder(attributesGetter).build())
         .addOperationMetrics(HttpServerMetrics.get())
-        .setEnabled(CONFIG.getPropertyValue(OpenTelemetryTracingEnabledProperty.class))
+        .setEnabled(CONFIG.getPropertyValue(OpenTelemetryTracingEnabledProperty.class).booleanValue())
         .buildInstrumenter(SpanKindExtractor.alwaysServer());
   }
 
@@ -87,12 +79,8 @@ public class OpenTelemetryFilterInstrumenterFactory {
 
     @Override
     public List<String> getHttpRequestHeader(HttpServletRequest httpServletRequest, String name) {
-      Enumeration<String> enumeration = httpServletRequest.getHeaders(name);
-      ArrayList<String> list = new ArrayList<>();
-      while (enumeration.hasMoreElements()) {
-        list.add(enumeration.nextElement());
-      }
-      return list;
+      Enumeration<String> values = httpServletRequest.getHeaders(name);
+      return Collections.list(values);
     }
 
     @Override

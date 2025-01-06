@@ -13,26 +13,24 @@ import org.eclipse.scout.rt.client.extension.ui.form.fields.button.AbstractButto
 import org.eclipse.scout.rt.client.extension.ui.form.fields.button.ButtonChains.ButtonClickActionChain;
 import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumenterFactory.OpenTelemetryExtensionRequest;
 import org.eclipse.scout.rt.client.ui.form.fields.button.AbstractButton;
+import org.eclipse.scout.rt.platform.BEANS;
 
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryButtonExtension extends AbstractButtonExtension<AbstractButton> implements IOpenTelemetryExtension<AbstractButton> {
+public class OpenTelemetryButtonExtension extends AbstractButtonExtension<AbstractButton> {
 
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractButton>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.button";
 
   public OpenTelemetryButtonExtension(AbstractButton owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractButton> r) -> r.getOwner().getLabel());
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> request.getOwner().getLabel());
   }
 
   @Override
   public void execClickAction(ButtonClickActionChain chain) {
-    wrapCall(() -> super.execClickAction(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execClickAction"));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractButton>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execClickAction")
+        .wrapCall(() -> super.execClickAction(chain), m_instrumenter);
   }
 }

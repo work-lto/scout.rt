@@ -34,25 +34,16 @@ public class JsonEventProcessor {
   public void processEvents(final JsonRequest request, final JsonResponse response) {
     Assertions.assertTrue(ModelJobs.isModelThread(), "Event processing must be called from the model thread  [currentThread={}, request={}, response={}]",
         Thread.currentThread().getName(), request, response);
-
     for (final JsonEvent event : request.getEvents()) {
       processEvent(event, response);
     }
   }
 
+  protected String buildSpanName(JsonEvent event, IJsonAdapter<?> jsonAdapter) {
+    return jsonAdapter.getModel().getClass().getSimpleName() + "." + event.getType();
+  }
+
   protected void processEvent(JsonEvent event, JsonResponse response) {
-    IJsonAdapter<?> jsonAdapter = m_uiSession.getJsonAdapter(event.getTarget());
-    addNameToContext(getName(jsonAdapter.getModel().getClass().getName(), event.getType()));
-
-    processEventInternal(event, response);
-  }
-
-  protected String getName(String fullName, String eventType) {
-    String adapterModel = fullName.substring(fullName.lastIndexOf('.') + 1);
-    return adapterModel + "." + eventType;
-  }
-
-  protected void processEventInternal(JsonEvent event, JsonResponse response) {
     final IJsonAdapter<?> jsonAdapter = m_uiSession.getJsonAdapter(event.getTarget());
     if (jsonAdapter == null) {
       LOG.info("No adapter found for event. {}", event.toSafeString());
@@ -63,6 +54,7 @@ public class JsonEventProcessor {
         LOG.debug("Handling event '{}' for adapter with ID {}", event.getType(), event.getTarget());
       }
 
+      addNameToContext(() -> buildSpanName(event, jsonAdapter));
       jsonAdapter.handleUiEvent(event);
       jsonAdapter.cleanUpEventFilters();
     }

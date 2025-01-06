@@ -50,6 +50,7 @@ public class RunContextChainTest {
     // 3. OpenTelemetryContextProcessor
     c = chainIterator.next();
     assertEquals(OpenTelemetryContextProcessor.class, c.getClass());
+    assertNull(RunContext.CURRENT.get().getOpenTelemetryContext());
 
     // 4. ThreadLocalProcessor for CorrelationId.CURRENT
     c = chainIterator.next();

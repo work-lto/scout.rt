@@ -9,41 +9,36 @@
  */
 package org.eclipse.scout.rt.platform.opentelemetry;
 
-import static org.eclipse.scout.rt.platform.IPlatform.State.BeanManagerValid;
-
-import org.eclipse.scout.rt.platform.IPlatformListener;
-import org.eclipse.scout.rt.platform.PlatformEvent;
 import org.eclipse.scout.rt.platform.config.CONFIG;
 import org.eclipse.scout.rt.platform.context.RunContext;
 import org.eclipse.scout.rt.platform.opentelemetry.OpenTelemetryProperties.OpenTelemetryTracingEnabledProperty;
+import org.eclipse.scout.rt.platform.util.LazyValue;
 
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextStorage;
 import io.opentelemetry.context.ContextStorageProvider;
 import io.opentelemetry.context.Scope;
 
-public class ScoutOpenTelemetryContextStorage implements ContextStorageProvider, IPlatformListener {
-  private volatile boolean m_tracingEnabled = false;
-
-  @Override
-  public void stateChanged(PlatformEvent event) {
-    if (event.getState() == BeanManagerValid) {
-      m_tracingEnabled = CONFIG.getPropertyValue(OpenTelemetryTracingEnabledProperty.class);
-    }
-  }
+/**
+ * Custom Context Storage implementation such that the correct opentelemetry context is propagated between the UI and
+ * the Model Thread. See also: {@link OpenTelemetryContextProcessor}
+ */
+public class ScoutOpenTelemetryContextStorage implements ContextStorageProvider {
+  private LazyValue<Boolean> m_tracingEnabled = new LazyValue<>(() -> CONFIG.getPropertyValue(OpenTelemetryTracingEnabledProperty.class));
 
   @Override
   public ContextStorage get() {
     ContextStorage threadLocalStorage = ContextStorage.defaultStorage();
 
-    if (!m_tracingEnabled) {
-      return threadLocalStorage;
-    }
-
     return new ContextStorage() {
       @Override
       public Scope attach(Context toAttach) {
         Context current = current();
+
+        if (!m_tracingEnabled.get().booleanValue()) {
+          return threadLocalStorage.attach(toAttach);
+        }
+
         RunContext runContext = RunContext.CURRENT.get();
         if (runContext != null) {
           runContext.withOpenTelemetryContext(toAttach);
@@ -63,5 +58,4 @@ public class ScoutOpenTelemetryContextStorage implements ContextStorageProvider,
       }
     };
   }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2024 BSI Business Systems Integration AG
+ * Copyright (c) 2010, 2023 BSI Business Systems Integration AG
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -70,11 +70,6 @@ public abstract class AbstractTreeExtension<OWNER extends AbstractTree> extends 
   }
 
   @Override
-  public void execNodesChecked(TreeNodesCheckedChain chain, List<ITreeNode> nodes) {
-    chain.execNodesChecked(nodes);
-  }
-
-  @Override
   public void execAppLinkAction(TreeHyperlinkActionChain chain, String ref) {
     chain.execHyperlinkAction(ref);
   }
@@ -102,5 +97,10 @@ public abstract class AbstractTreeExtension<OWNER extends AbstractTree> extends 
   @Override
   public void execAutoCheckChildNodes(TreeAutoCheckChildNodesChain chain, List<ITreeNode> nodes, boolean checked, boolean enabledNodesOnly) {
     chain.execAutoCheckChildNodes(nodes, checked, enabledNodesOnly);
+  }
+
+  @Override
+  public void execNodesChecked(TreeNodesCheckedChain chain, List<ITreeNode> nodes) {
+    chain.execNodesChecked(nodes);
   }
 }

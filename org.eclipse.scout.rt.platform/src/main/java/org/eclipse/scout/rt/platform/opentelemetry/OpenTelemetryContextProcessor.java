@@ -33,5 +33,4 @@ public class OpenTelemetryContextProcessor implements ICallableDecorator {
 
     return scope::close;
   }
-
 }

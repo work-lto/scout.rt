@@ -64,5 +64,4 @@ public class OpenTelemetryFilter implements Filter {
     }
     m_instrumenter.end(context, request, response, null);
   }
-
 }

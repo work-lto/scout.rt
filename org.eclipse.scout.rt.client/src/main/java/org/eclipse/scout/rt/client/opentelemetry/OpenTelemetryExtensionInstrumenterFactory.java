@@ -9,13 +9,10 @@
  */
 package org.eclipse.scout.rt.client.opentelemetry;
 
-import static io.opentelemetry.instrumentation.api.internal.AttributesExtractorUtil.internalSet;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -27,6 +24,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;
@@ -34,47 +32,52 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;
 @ApplicationScoped
 public class OpenTelemetryExtensionInstrumenterFactory {
 
-  public <OWNER> Instrumenter<OpenTelemetryExtensionRequest<OWNER>, Void> createInstrumenter(String instrumentationName, String prefix,
+  public <OWNER> Instrumenter<OpenTelemetryExtensionRequest<OWNER>, Void> createInstrumenter(Class<?> instrumentationClass,
       Function<OpenTelemetryExtensionRequest<OWNER>, String> getTextFunction) {
     SpanNameExtractor<OpenTelemetryExtensionRequest<OWNER>> spanNameExtractor = request -> request.getOwner().getClass().getSimpleName() + "." + request.getEventName();
-    AttributesExtractor<OpenTelemetryExtensionRequest<OWNER>, Void> attributesExtractor = new AttributesExtractor<>() {
-      private final AttributeKey<String> m_requestClass = io.opentelemetry.api.common.AttributeKey.stringKey(prefix + ".class");
-      private final AttributeKey<String> m_requestName = AttributeKey.stringKey(prefix + ".text");
-      private final AttributeKey<String> m_eventName = AttributeKey.stringKey(prefix + ".event.name");
-
-      @Override
-      public void onStart(AttributesBuilder attributes, Context parentContext, OpenTelemetryExtensionRequest<OWNER> request) {
-        internalSet(attributes, m_requestClass, request.getOwner().getClass().getName());
-        internalSet(attributes, m_requestName, getTextFunction.apply(request));
-        internalSet(attributes, m_eventName, request.getEventName());
-
-        for (Entry<String, String> eventInfo : request.getEventMap().entrySet()) {
-          internalSet(attributes, AttributeKey.stringKey(prefix + ".event." + eventInfo.getKey()), eventInfo.getValue());
-        }
-      }
-
-      @Override
-      public void onEnd(AttributesBuilder attributes, Context context, OpenTelemetryExtensionRequest<OWNER> request, @Nullable Void unused, @Nullable Throwable error) {
-        // nop
-      }
-    };
+    ScoutExtensionAttributesExtractor<OWNER> attributesExtractor = new ScoutExtensionAttributesExtractor<>(getTextFunction);
     return Instrumenter.<OpenTelemetryExtensionRequest<OWNER>, Void> builder(GlobalOpenTelemetry.get(),
-        "scout." + instrumentationName,
+        "scout." + instrumentationClass.getSimpleName(),
         spanNameExtractor)
         .addAttributesExtractor(attributesExtractor)
-        .setEnabled(CONFIG.getPropertyValue(OpenTelemetryTracingEnabledProperty.class))
+        .setEnabled(CONFIG.getPropertyValue(OpenTelemetryTracingEnabledProperty.class).booleanValue())
         .buildInstrumenter();
+  }
+
+  public static class ScoutExtensionAttributesExtractor<T> implements AttributesExtractor<OpenTelemetryExtensionRequest<T>, Void> {
+
+    private static final AttributeKey<String> OWNER_CLASS = AttributeKey.stringKey("scout.extension.owner.class");
+    private static final AttributeKey<String> OWNER_DISPLAY_TEXT = AttributeKey.stringKey("scout.extension.owner.display_text");
+
+    private final Function<OpenTelemetryExtensionRequest<T>, String> m_getTextFunction;
+
+    public ScoutExtensionAttributesExtractor(Function<OpenTelemetryExtensionRequest<T>, String> getTextFunction) {
+      m_getTextFunction = getTextFunction;
+    }
+
+    @Override
+    public void onStart(AttributesBuilder attributes, Context parentContext, OpenTelemetryExtensionRequest<T> request) {
+      attributes.put(OWNER_CLASS, request.getOwner().getClass().getName());
+      attributes.put(OWNER_DISPLAY_TEXT, m_getTextFunction.apply(request));
+
+      request.getAdditionalAttributesProvider().accept(attributes);
+    }
+
+    @Override
+    public void onEnd(AttributesBuilder attributes, Context context, OpenTelemetryExtensionRequest<T> request, @Nullable Void unused, @Nullable Throwable error) {
+      // nop
+    }
   }
 
   public static class OpenTelemetryExtensionRequest<T> {
     private T m_owner;
     private String m_eventName;
-    private Map<String, String> m_eventMap;
+    private Consumer<AttributesBuilder> m_additionalAttributesProvider;
 
     public OpenTelemetryExtensionRequest(T owner, String eventName) {
       m_owner = owner;
       m_eventName = eventName;
-      m_eventMap = new HashMap<>();
+      m_additionalAttributesProvider = attributes -> {};
     }
 
     @Override
@@ -86,12 +89,12 @@ public class OpenTelemetryExtensionInstrumenterFactory {
         return false;
       }
       OpenTelemetryExtensionRequest<?> that = (OpenTelemetryExtensionRequest<?>) o;
-      return Objects.equals(m_owner, that.m_owner) && Objects.equals(m_eventName, that.m_eventName) && Objects.equals(m_eventMap, that.m_eventMap);
+      return Objects.equals(m_owner, that.m_owner) && Objects.equals(m_eventName, that.m_eventName);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(m_owner, m_eventName, m_eventMap);
+      return Objects.hash(m_owner, m_eventName);
     }
 
     public T getOwner() {
@@ -102,13 +105,52 @@ public class OpenTelemetryExtensionInstrumenterFactory {
       return m_eventName;
     }
 
-    public Map<String, String> getEventMap() {
-      return m_eventMap;
+    public Consumer<AttributesBuilder> getAdditionalAttributesProvider() {
+      return m_additionalAttributesProvider;
     }
 
-    public OpenTelemetryExtensionRequest<T> withEventInfo(String eventInfoKey, String eventInfo) {
-      m_eventMap.put(eventInfoKey, eventInfo);
+    public OpenTelemetryExtensionRequest<T> withAdditionalAttributesProvider(Consumer<AttributesBuilder> additionalAttributesProvider) {
+      m_additionalAttributesProvider = additionalAttributesProvider;
       return this;
+    }
+
+    public <R> R wrapCall(Supplier<R> callable, Instrumenter<OpenTelemetryExtensionRequest<T>, Void> m_instrumenter) {
+      Context parentContext = Context.current();
+
+      if (!m_instrumenter.shouldStart(parentContext, this)) {
+        return callable.get();
+      }
+
+      Context context = m_instrumenter.start(parentContext, this);
+      R result;
+      try (Scope ignored = context.makeCurrent()) {
+        result = callable.get();
+      }
+      catch (Throwable t) {
+        m_instrumenter.end(context, this, null, t);
+        throw t;
+      }
+      m_instrumenter.end(context, this, null, null);
+      return result;
+    }
+
+    public void wrapCall(Runnable callable, Instrumenter<OpenTelemetryExtensionRequest<T>, Void> m_instrumenter) {
+      Context parentContext = Context.current();
+
+      if (!m_instrumenter.shouldStart(parentContext, this)) {
+        callable.run();
+        return;
+      }
+
+      Context context = m_instrumenter.start(parentContext, this);
+      try (Scope ignored = context.makeCurrent()) {
+        callable.run();
+      }
+      catch (Throwable t) {
+        m_instrumenter.end(context, this, null, t);
+        throw t;
+      }
+      m_instrumenter.end(context, this, null, null);
     }
   }
 }

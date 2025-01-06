@@ -17,46 +17,48 @@ import org.eclipse.scout.rt.client.extension.ui.form.FormHandlerChains.FormHandl
 import org.eclipse.scout.rt.client.extension.ui.form.FormHandlerChains.FormHandlerValidateChain;
 import org.eclipse.scout.rt.client.opentelemetry.OpenTelemetryExtensionInstrumenterFactory.OpenTelemetryExtensionRequest;
 import org.eclipse.scout.rt.client.ui.form.AbstractFormHandler;
+import org.eclipse.scout.rt.platform.BEANS;
 
 import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;
 
-public class OpenTelemetryFormHandlerExtension extends AbstractFormHandlerExtension<AbstractFormHandler> implements IOpenTelemetryExtension<AbstractFormHandler> {
+public class OpenTelemetryFormHandlerExtension extends AbstractFormHandlerExtension<AbstractFormHandler> {
 
   private Instrumenter<OpenTelemetryExtensionRequest<AbstractFormHandler>, Void> m_instrumenter;
-  private static final String PREFIX = "scout.client.formhandler";
 
   public OpenTelemetryFormHandlerExtension(AbstractFormHandler owner) {
     super(owner);
-    m_instrumenter = createInstrumenter(PREFIX, (OpenTelemetryExtensionRequest<AbstractFormHandler> r) -> r.getOwner().getForm().getTitle());
+    m_instrumenter = BEANS.get(OpenTelemetryExtensionInstrumenterFactory.class).createInstrumenter(
+        getClass(),
+        (request) -> request.getOwner().getForm().getTitle());
   }
 
   @Override
   public void execLoad(FormHandlerLoadChain chain) {
-    wrapCall(() -> super.execLoad(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execLoad"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execLoad")
+        .wrapCall(() -> super.execLoad(chain), m_instrumenter);
   }
 
   @Override
   public void execPostLoad(FormHandlerPostLoadChain chain) {
-    wrapCall(() -> super.execPostLoad(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execPostLoad"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execPostLoad")
+        .wrapCall(() -> super.execPostLoad(chain), m_instrumenter);
   }
 
   @Override
   public boolean execValidate(FormHandlerValidateChain chain) {
-    return wrapCall(() -> super.execValidate(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execValidate"));
+    return new OpenTelemetryExtensionRequest<>(getOwner(), "execValidate")
+        .wrapCall(() -> super.execValidate(chain), m_instrumenter);
   }
 
   @Override
   public void execStore(FormHandlerStoreChain chain) {
-    wrapCall(() -> super.execStore(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execStore"));
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execStore")
+        .wrapCall(() -> super.execStore(chain), m_instrumenter);
   }
 
   @Override
   public void execDiscard(FormHandlerDiscardChain chain) {
-    wrapCall(() -> super.execDiscard(chain), new OpenTelemetryExtensionRequest<>(getOwner(), "execDiscard"));
-  }
-
-  @Override
-  public Instrumenter<OpenTelemetryExtensionRequest<AbstractFormHandler>, Void> getInstrumenter() {
-    return m_instrumenter;
+    new OpenTelemetryExtensionRequest<>(getOwner(), "execDiscard")
+        .wrapCall(() -> super.execDiscard(chain), m_instrumenter);
   }
 }
